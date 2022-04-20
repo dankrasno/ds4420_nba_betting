@@ -1,20 +1,25 @@
-from copyreg import remove_extension
+# from cmath import nan
+# from copyreg import remove_extension
 from re import I
 from nba_api.stats.static import teams
 from nba_api.stats.endpoints import leaguegamefinder
 import pandas as pd
 import os
+import numpy as np
 
 '''
 STATS:
 basic stats: drb, orb, ... fta, .etc.
 winrate stats: 
 '''
+year_to_reg_season_start ={
+    '2018': '2018-10-16',
+    '2019': '2019-10-22',
+}
 
-year_to_playoff_start ={
-    '2018': '2019-04-09',
+year_to_reg_season_end ={
+    '2018': '2019-04-10',
     '2019': '2018-04-14',
-
 }
 
 # descriptive_cols = ['SEASON_ID', 'TEAM_ID', 'TEAM_ABBREVIATION', 'TEAM_NAME', 'WL', 'MIN']
@@ -51,20 +56,44 @@ def get_games_by_year(year):
     Get all games for a season
     '''
 
-    nba_teams = [t['id'] for t in teams.get_teams()]
+    nba_teams = [t['id'] for t in teams.get_teams()][:5]
     
+    # games by team
+    games_dict = {}
     games = [get_games_by_team_szn(year, team_id) for team_id in nba_teams]
-    all_game_stats = pd.concat(games[:])
+    for g in games:
+        team, games = make_cumulative(g)
+        print(team, games.shape)
+        games_dict[team] = games
 
-    # result = leaguegamefinder.LeagueGameFinder()
-    # all_games = result.get_data_frames()[0]
-    # # adjust for year
-    # all_games = all_games[all_games.SEASON_ID.str[-4:] == year]
-    # all_games = all_games[all_games.TEAM_ABBREVIATION.isin(nba_teams)]
-
-    # # only teams in nba
-    # print(all_games.shape)
+    print(games_dict['ATL'])
     return all_game_stats
+
+def make_cumulative(df):
+
+    # setup
+    dates, matchup, team_name = df["GAME_DATE"], df["MATCHUP"], df["TEAM_ABBREVIATION"]
+    matchup = [m[-3:] for m in matchup]
+    df = df.drop(descriptive_cols, axis=1)
+    dictionary_data = {}
+
+    # get previous rows, get averages and append to dict
+    for i in range(df.shape[0]):
+        preceding_rows = df.iloc[:i]
+        avg_til_now = list(preceding_rows.mean())
+        if np.isnan(avg_til_now).any():
+            avg_til_now = [0] * len(avg_til_now)
+        dictionary_data[i] = avg_til_now
+
+    # create and fix up final df
+    df_final = pd.DataFrame.from_dict(dictionary_data, orient='index')
+    df_final.columns = df.columns
+    df_final['GAMES_PLAYED'] = df['GAMES_PLAYED']
+    df_final['GAME_DATE'] = dates
+    df_final['OPPONENT'] = matchup
+    df_final['TEAM_ABBREVIATION'] = team_name
+
+    return team_name.iloc[0], df_final
 
 def make_xy(df):
     '''
@@ -110,16 +139,22 @@ def get_games_by_team_szn(year, team_id, remove_playoff=True):
 
         # sort by date
         sorted_szn_games = team_szn_games.sort_values('GAME_DATE', ascending=True)
+
+        # remove playoff games and preseason
+        if remove_playoff:
+            print(year_to_reg_season_start[year], year_to_reg_season_end[year])
+            
+            sorted_szn_games = sorted_szn_games.loc[sorted_szn_games['GAME_DATE'] <= year_to_reg_season_end[year]]
+            sorted_szn_games = sorted_szn_games.loc[sorted_szn_games['GAME_DATE'] >= year_to_reg_season_start[year]]
+        
         # add 'games played'
         sorted_szn_games['GAMES_PLAYED'] = range(0, sorted_szn_games.shape[0])
-
-        # remove playoff games
-        if remove_playoff:
-            sorted_szn_games = sorted_szn_games.loc[sorted_szn_games['GAME_DATE'] < year_to_playoff_start[year]]
 
         sorted_szn_games.to_csv(filename, index=False)
         print('Fetched and cached.\n')
 
+    # print('xasgasgasf')
+    # print(sorted_szn_games)
     return sorted_szn_games
 
 
@@ -158,11 +193,5 @@ def main():
 
     year = '2018'
     g = get_games_by_year(year)
-    X, y = make_xy(g)
-
-    print(X)
-    print('===========')
-    print(y)
-    # get_games_by_year('2018')
 
 main()
