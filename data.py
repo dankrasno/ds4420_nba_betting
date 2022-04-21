@@ -6,6 +6,7 @@ from nba_api.stats.endpoints import leaguegamefinder
 import pandas as pd
 import os
 import numpy as np
+from tqdm import tqdm
 
 '''
 STATS:
@@ -51,23 +52,69 @@ def get_games_by_team_and_year(team_id, year, drop_extra=False):
     
     return games
 
-def get_games_by_year(year):
+def get_games_by_year(year, with_opponents=False):
     '''
     Get all games for a season
     '''
 
-    nba_teams = [t['id'] for t in teams.get_teams()][:5]
+    nba_teams = [t['id'] for t in teams.get_teams()]    
     
     # games by team
     games_dict = {}
     games = [get_games_by_team_szn(year, team_id) for team_id in nba_teams]
     for g in games:
         team, games = make_cumulative(g)
-        print(team, games.shape)
         games_dict[team] = games
 
-    print(games_dict['ATL'])
-    return all_game_stats
+    full_data = None
+    if with_opponents:
+        full_data = add_opponents(games_dict, nba_teams)
+
+    return full_data
+
+def add_opponents(games_dict, teams):
+
+    with_opps = {}
+
+    for key in games_dict:
+        print(key)
+        sub_df = games_dict[key]
+        sub_dict = sub_df.to_dict('records')
+        # for each row in subdf
+        for row in sub_dict:
+            # print(row)
+            # print(type(row))
+
+            # find opponent (abbreviation), find game date
+            opponent = row['OPPONENT']
+            game_date = row['GAME_DATE']
+
+            row = pd.DataFrame.from_dict(row)
+            print(row)
+
+            # get opponent df
+            opponent_df = games_dict[opponent]
+
+            # get opponent cumulative stats
+            # using game date, validate current team abbreviation
+            opponent_row = opponent_df.loc[opponent_df['GAME_DATE'] == game_date]
+            print(opponent_row)
+            print(type(opponent_row))
+
+            # combine stats into 1 row
+
+            # add to new ditct 
+
+
+            print('=========')
+
+
+
+    # make df from dict
+    with_opps = pd.DataFrame.from_dict(with_opps, orient='index')
+
+    return with_opps
+
 
 def make_cumulative(df):
 
