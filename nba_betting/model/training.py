@@ -1,4 +1,4 @@
-from typing import List
+from typing import Sequence
 
 from nba_betting.api.data import get_games_by_year, make_xy
 from nba_betting.logging.tools import logger
@@ -6,7 +6,7 @@ from nba_betting.model.classes.base import Model
 
 
 def fit_all(
-    models: List[Model],
+    models: Sequence[Model],
     year: int,
     load_cache: bool = True,
     store_cache: bool = True,

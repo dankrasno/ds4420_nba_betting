@@ -53,7 +53,6 @@ class Model:
         return cache_found
 
     def fit(self, X: pd.DataFrame, y: Any, sample_weight: Optional[Any] = None) -> Any:
-        print(X)
         return self.estimator.fit(
             X=X[self.column_filter] if self.column_filter else X,
             y=y,
