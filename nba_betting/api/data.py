@@ -46,7 +46,9 @@ def get_team_id_from_abbr(team_abbr: str) -> int:
     return int(team["id"])
 
 
-def get_games_by_team_and_year(team_id, year, drop_extra=False):
+def get_games_by_team_and_year(
+    team_id: int, year: int, drop_extra: bool = False
+) -> pd.DataFrame:
     """
     year: 2018 for the 2017-18 season
     """
@@ -54,9 +56,9 @@ def get_games_by_team_and_year(team_id, year, drop_extra=False):
     # Query for games where the Celtics were playing
     gamefinder = leaguegamefinder.LeagueGameFinder(team_id_nullable=team_id)
     # The first DataFrame of those returned is what we want.
-    games = gamefinder.get_data_frames()[0]
+    games: pd.DataFrame = gamefinder.get_data_frames()[0]
     # adjust for year
-    games = games[games.SEASON_ID.str[-4:] == year]
+    games = games[games.SEASON_ID.str[-4:] == str(year)]
 
     if drop_extra:
         games = games.drop(descriptive_cols, axis=1)
@@ -184,7 +186,7 @@ def get_points_by_quarter(team_id):
     pass
 
 
-def main():
+def main() -> None:
 
     year = "2018"
     g = get_games_by_year(year)
@@ -196,4 +198,5 @@ def main():
     # get_games_by_year('2018')
 
 
-main()
+if __name__ == "__main__":
+    main()
