@@ -90,7 +90,7 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     return all_game_stats
 
 
-def make_xy(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series[str]]:
+def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     """
     Drop columns we won't need
     """
@@ -197,6 +197,7 @@ def get_points_by_quarter(team_id: int) -> None:
 def main() -> None:
 
     year = 2018
+    logging.info(f"Getting data for {year}")
     g = get_games_by_year(year)
     X, y = make_xy(g)
 
@@ -206,4 +207,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     main()
