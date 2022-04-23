@@ -1,3 +1,5 @@
+source .venv/bin/activate
+
 black nba_betting tests
 
 isort nba_betting tests
@@ -6,3 +8,5 @@ flake8 nba_betting tests
 
 mypy nba_betting tests
 # Refer to: https://pandas.pydata.org/pandas-docs/version/1.0.0/development/contributing.html
+
+deactivate

@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any, Tuple
 
 import pandas as pd
 from nba_api.stats.endpoints import leaguegamefinder
@@ -13,8 +14,12 @@ winrate stats:
 
 
 year_to_playoff_start = {
-    "2018": "2019-04-09",
-    "2019": "2018-04-14",
+    # https://en.wikipedia.org/wiki/2018_NBA_playoffs
+    # 2018: "2018-04-14",  # do not use
+    2018: "2019-04-09",
+    # https://en.wikipedia.org/wiki/2019_NBA_playoffs
+    # 2019: "2019-04-13",  # do not use
+    2019: "2018-04-14",  # TODO: @dankrasno needs to be adjusted
 }
 
 # descriptive_cols = [
@@ -46,7 +51,9 @@ def get_team_id_from_abbr(team_abbr: str) -> int:
     return int(team["id"])
 
 
-def get_games_by_team_and_year(team_id, year, drop_extra=False):
+def get_games_by_team_and_year(
+    team_id: int, year: int, drop_extra: bool = False
+) -> pd.DataFrame:
     """
     year: 2018 for the 2017-18 season
     """
@@ -54,9 +61,9 @@ def get_games_by_team_and_year(team_id, year, drop_extra=False):
     # Query for games where the Celtics were playing
     gamefinder = leaguegamefinder.LeagueGameFinder(team_id_nullable=team_id)
     # The first DataFrame of those returned is what we want.
-    games = gamefinder.get_data_frames()[0]
+    games: pd.DataFrame = gamefinder.get_data_frames()[0]
     # adjust for year
-    games = games[games.SEASON_ID.str[-4:] == year]
+    games = games.where((games.SEASON_ID.astype(int) % 10000) == year)
 
     if drop_extra:
         games = games.drop(descriptive_cols, axis=1)
@@ -64,7 +71,7 @@ def get_games_by_team_and_year(team_id, year, drop_extra=False):
     return games
 
 
-def get_games_by_year(year):
+def get_games_by_year(year: int) -> pd.DataFrame:
     """
     Get all games for a season
     """
@@ -85,7 +92,7 @@ def get_games_by_year(year):
     return all_game_stats
 
 
-def make_xy(df):
+def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     """
     Drop columns we won't need
     """
@@ -94,7 +101,9 @@ def make_xy(df):
     return X, y
 
 
-def games_team_szn_filename(year, team_id, remove_playoff=True):
+def games_team_szn_filename(
+    year: int, team_id: int, remove_playoff: bool = True
+) -> str:
     if remove_playoff:
         rp = "noplayoff"
     else:
@@ -102,7 +111,9 @@ def games_team_szn_filename(year, team_id, remove_playoff=True):
     return str(year) + "_" + str(team_id) + "_" + rp + ".csv"
 
 
-def get_games_by_team_szn(year, team_id, remove_playoff=True):
+def get_games_by_team_szn(
+    year: int, team_id: int, remove_playoff: bool = True
+) -> pd.DataFrame:
     """
     number of games played this season before current game
     team_id required because each game has 2 rows, one for each team
@@ -129,10 +140,10 @@ def get_games_by_team_szn(year, team_id, remove_playoff=True):
 
         # get all games
         result = leaguegamefinder.LeagueGameFinder()
-        all_games = result.get_data_frames()[0]
+        all_games: pd.DataFrame = result.get_data_frames()[0]
 
         # get this seasons' games for this team
-        szn_games = all_games[all_games.SEASON_ID.str[-4:] == year]
+        szn_games = all_games.where(all_games.SEASON_ID.astype(int) % 10000 == year)
         team_szn_games = szn_games.loc[szn_games["TEAM_ID"] == team_id]
 
         # sort by date
@@ -142,8 +153,9 @@ def get_games_by_team_szn(year, team_id, remove_playoff=True):
 
         # remove playoff games
         if remove_playoff:
+            game_dates: pd.Series[Any] = sorted_szn_games["GAME_DATE"]
             sorted_szn_games = sorted_szn_games.loc[
-                sorted_szn_games["GAME_DATE"] < year_to_playoff_start[year]
+                game_dates < year_to_playoff_start[year]  # type: ignore
             ]
 
         sorted_szn_games.to_csv(filename, index=False)
@@ -152,48 +164,50 @@ def get_games_by_team_szn(year, team_id, remove_playoff=True):
     return sorted_szn_games
 
 
-def get_per_game(game_id):
+def get_per_game(game_id: int) -> None:
     """
     get averages for all basic stats
     """
     pass
 
 
-def get_trailing(game_id, trail_by=10):
+def get_trailing(game_id: int, trail_by: int = 10) -> None:
     """
     get averages for previous X games
     """
     pass
 
 
-def get_oppt_ppg(team_id):
+def get_oppt_ppg(team_id: int) -> None:
     """
     opponents ppg before this game
     """
 
 
-def get_winrate_stats(team_id):
+def get_winrate_stats(team_id: int) -> None:
     """ """
     pass
 
 
-def get_points_by_quarter(team_id):
+def get_points_by_quarter(team_id: int) -> None:
     """
     both scored and scored on
     """
     pass
 
 
-def main():
+def main() -> None:
 
-    year = "2018"
+    year = 2018
+    logging.info(f"Getting data for {year}")
     g = get_games_by_year(year)
     X, y = make_xy(g)
 
     logging.info(X)
     logging.info("===========")
     logging.info(y)
-    # get_games_by_year('2018')
 
 
-main()
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    main()
