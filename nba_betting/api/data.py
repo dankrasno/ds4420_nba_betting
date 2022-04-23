@@ -15,9 +15,11 @@ winrate stats:
 
 year_to_playoff_start = {
     # https://en.wikipedia.org/wiki/2018_NBA_playoffs
-    2018: "2018=04-14",
+    # 2018: "2018-04-14",  # do not use
+    2018: "2019-04-09",
     # https://en.wikipedia.org/wiki/2019_NBA_playoffs
-    2019: "2019-04-13",
+    # 2019: "2019-04-13",  # do not use
+    2019: "2018-04-14",  # TODO: @dankrasno needs to be adjusted
 }
 
 # descriptive_cols = [
@@ -61,7 +63,7 @@ def get_games_by_team_and_year(
     # The first DataFrame of those returned is what we want.
     games: pd.DataFrame = gamefinder.get_data_frames()[0]
     # adjust for year
-    games = games.where((games.SEASON_ID % 10000) == year)
+    games = games.where((games.SEASON_ID.astype(int) % 10000) == year)
 
     if drop_extra:
         games = games.drop(descriptive_cols, axis=1)
@@ -141,7 +143,7 @@ def get_games_by_team_szn(
         all_games: pd.DataFrame = result.get_data_frames()[0]
 
         # get this seasons' games for this team
-        szn_games = all_games.where(all_games.SEASON_ID % 10000 == year)
+        szn_games = all_games.where(all_games.SEASON_ID.astype(int) % 10000 == year)
         team_szn_games = szn_games.loc[szn_games["TEAM_ID"] == team_id]
 
         # sort by date

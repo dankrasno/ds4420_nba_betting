@@ -1,6 +1,9 @@
 # Project files
+#   - ignore model cache dumps
+data/model_cache/
 #   - ignore API data dumps
 data/raw/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
