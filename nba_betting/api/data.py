@@ -1,31 +1,23 @@
 import logging
 import os
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.static import teams
 
-year_to_reg_season_start ={
-    2018: '2018-10-16',
-    2019: '2019-10-22',
+year_to_reg_season_start = {
+    2018: "2018-10-16",
+    2019: "2019-10-22",
 }
 
-year_to_reg_season_end ={
-    2018: '2019-04-10',
-    2019: '2020-04-14',
+year_to_reg_season_end = {
+    2018: "2019-04-10",
+    2019: "2020-04-14",
 }
 
-# descriptive_cols = [
-#     "SEASON_ID",
-#     "TEAM_ID",
-#     "TEAM_ABBREVIATION",
-#     "TEAM_NAME",
-#     "WL",
-#     "MIN",
-# ]
-descriptive_cols = [
+DESCRIPTIVE_COLS = [
     "SEASON_ID",
     "TEAM_ID",
     "TEAM_ABBREVIATION",
@@ -36,12 +28,7 @@ descriptive_cols = [
     "WL",
     "MIN",
 ]
-overlap_cols = [
-    "GAME_DATE",
-    "OPPONENT",
-    "TEAM_ABBREVIATION",
-    "WL"
-]
+OVERLAP_COLS = ["GAME_DATE", "OPPONENT", "TEAM_ABBREVIATION", "WL"]
 
 
 def get_team_id_from_abbr(team_abbr: str) -> int:
@@ -67,59 +54,65 @@ def get_games_by_team_and_year(
     games = games.where((games.SEASON_ID.astype(int) % 10000) == year)
 
     if drop_extra:
-        games = games.drop(descriptive_cols, axis=1)
+        games = games.drop(DESCRIPTIVE_COLS, axis=1)
 
     return games
 
 
-def get_games_by_year(year: int, with_opponents=True) -> pd.DataFrame:
+def get_games_by_year(year: int) -> pd.DataFrame:
     """
     Get all games for a season
     """
 
-    nba_teams = [t['id'] for t in teams.get_teams()]    
-    
+    nba_teams = [t["id"] for t in teams.get_teams()]
+
     # games by team
     games_dict = {}
     games = [get_games_by_team_szn(year, team_id) for team_id in nba_teams]
 
-    logging.info('Getting game data...')
+    logging.info("Getting game data...")
     for g in games:
-        team, games = make_cumulative(g)
-        games_dict[team] = games
-    logging.info('Done getting game data')
+        team_name, cumulative_df = make_cumulative(g)
+        games_dict[team_name] = cumulative_df
+    logging.info("Done getting game data")
 
-    logging.info('Creating matchups...')
-    full_data = None
-    if with_opponents:
-        full_data = add_opponents(games_dict, nba_teams)
-    logging.info('Done creating matchups.')
+    logging.info("Creating matchups...")
+    games_with_ops = add_opponents(games_dict)
+    logging.info("Done creating matchups.")
 
-    full_year_df = pd.concat([v for k,v in full_data.items()])
+    full_year_df = pd.concat([v for v in games_with_ops.values()])
+    full_year_df.dropna(inplace=True, subset=["WL"], how="all")
+    full_year_df.reset_index(inplace=True)
+
     return full_year_df
 
-def add_opponents(games_dict, teams):
 
-    with_opps = {}
+def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
 
+    with_opps: Dict[str, pd.DataFrame] = {}
     for key in games_dict:
         sub_df = games_dict[key]
-        sub_dict = sub_df.to_dict('records')
+        sub_dict = sub_df.to_dict("records")
         team_opp_dict = {}
         col_names = None
-        
+
         for i, row in enumerate(sub_dict):
 
             # find opponent (abbreviation), find game date
-            opponent = row['OPPONENT']
-            game_date = row['GAME_DATE']
+            opponent = row["OPPONENT"]
+            game_date = row["GAME_DATE"]
 
-            row2 = pd.DataFrame(row, index=[0]) 
+            row2 = pd.DataFrame(row, index=[0])
             opponent_df = games_dict[opponent]
 
             # get opponent cumulative stats
             # using game date, validate current team abbreviation
-            opponent_row = opponent_df.loc[opponent_df['GAME_DATE'] == game_date].drop(overlap_cols, axis=1).add_prefix('OPP_').set_index(pd.Index([0]))
+            opponent_row = (
+                opponent_df.loc[opponent_df["GAME_DATE"] == game_date]
+                .drop(OVERLAP_COLS, axis=1)
+                .add_prefix("OPP_")
+                .set_index(pd.Index([0]))
+            )
             # opp_cols = opponent_row
 
             # combine stats into 1 row
@@ -130,19 +123,20 @@ def add_opponents(games_dict, teams):
             if i == 0:
                 col_names = row2.columns.append(opponent_row.columns)
 
-        team_opp_df = pd.DataFrame.from_dict(team_opp_dict, orient='index')
+        team_opp_df = pd.DataFrame.from_dict(team_opp_dict, orient="index")
         team_opp_df.columns = col_names
         with_opps[key] = team_opp_df
 
     return with_opps
 
-def make_cumulative(df):
+
+def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
 
     # setup
     dates, matchup, team_name = df["GAME_DATE"], df["MATCHUP"], df["TEAM_ABBREVIATION"]
     matchup = [m[-3:] for m in matchup]
-    wl = df['WL']
-    df = df.drop(descriptive_cols, axis=1)
+    wl = df["WL"]
+    df = df.drop(DESCRIPTIVE_COLS, axis=1)
     dictionary_data = {}
 
     # get previous rows, get averages and append to dict
@@ -154,23 +148,24 @@ def make_cumulative(df):
         dictionary_data[i] = avg_til_now
 
     # create and fix up final df
-    df_final = pd.DataFrame.from_dict(dictionary_data, orient='index')
+    df_final: pd.DataFrame = pd.DataFrame.from_dict(dictionary_data, orient="index")
     df_final.columns = df.columns
-    df_final['GAMES_PLAYED'] = df['GAMES_PLAYED']
-    df_final['GAME_DATE'] = dates
-    df_final['OPPONENT'] = matchup
-    df_final['TEAM_ABBREVIATION'] = team_name
-    df_final['WL'] = wl
+    df_final["GAMES_PLAYED"] = df["GAMES_PLAYED"]
+    df_final["GAME_DATE"] = dates
+    df_final["OPPONENT"] = matchup
+    df_final["TEAM_ABBREVIATION"] = team_name
+    df_final["WL"] = wl
 
-    return team_name.iloc[0], df_final
+    return str(team_name.iloc[0]), df_final
 
 
 def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     """
     Drop columns we won't need
     """
+
     y = df["WL"]
-    X = df.drop(overlap_cols, axis=1)
+    X = df.drop(OVERLAP_COLS, axis=1)
     return X, y
 
 
@@ -221,14 +216,16 @@ def get_games_by_team_szn(
 
         # sort by date
         sorted_szn_games = team_szn_games.sort_values("GAME_DATE", ascending=True)
-        
+
         # remove playoff games
         if remove_playoff:
             game_dates: pd.Series[Any] = sorted_szn_games["GAME_DATE"]
             sorted_szn_games = sorted_szn_games.loc[
                 game_dates < year_to_reg_season_end[year]  # type: ignore
             ]
-            sorted_szn_games = sorted_szn_games.loc[sorted_szn_games['GAME_DATE'] >= year_to_reg_season_start[year]]
+            sorted_szn_games = sorted_szn_games.loc[
+                sorted_szn_games["GAME_DATE"] >= year_to_reg_season_start[year]
+            ]
 
         # add 'games played'
         sorted_szn_games["GAMES_PLAYED"] = range(0, sorted_szn_games.shape[0])
@@ -275,12 +272,12 @@ def main() -> None:
 
     year = 2018
     logging.info(f"Getting data for {year}")
-    g = get_games_by_year(year, with_opponents=True)
+    g = get_games_by_year(year)
     X, y = make_xy(g)
 
-    # logging.info(X)
-    # logging.info("===========")
-    # logging.info(y)
+    logging.info(X)
+    logging.info("===========")
+    logging.info(y)
 
 
 if __name__ == "__main__":
