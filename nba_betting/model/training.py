@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
 
-from nba_betting.api.data import DESCRIPTIVE_COLS, get_games_by_year
+from nba_betting.api.data import OVERLAP_COLS, get_games_by_year
 from nba_betting.logging.tools import logger
 from nba_betting.model.classes import NBA_MODELS
 from nba_betting.model.classes.base import (
@@ -20,7 +20,7 @@ def preprocess_games(year: int) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     games_df = get_games_by_year(year).reset_index()
     cleaned_df = games_df.dropna(subset=["WL"], how="all")
 
-    X = cleaned_df.drop(DESCRIPTIVE_COLS, axis=1)
+    X = cleaned_df.drop(OVERLAP_COLS, axis=1)
     y = cleaned_df["WL"]
 
     logger.info(

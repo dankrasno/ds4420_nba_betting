@@ -1,6 +1,6 @@
 import argparse
 
-from nba_betting.api.data import year_to_playoff_start
+from nba_betting.api.data import year_to_reg_season_start
 from nba_betting.model.training import fit_ensemble
 
 
@@ -16,13 +16,13 @@ class ModelTrainer:
             "--train-year",
             required=True,
             type=int,
-            choices=[_ for _ in year_to_playoff_start.keys()],
+            choices=[_ for _ in year_to_reg_season_start.keys()],
         )
         parser.add_argument(
             "--test-year",
             required=True,
             type=int,
-            choices=[_ for _ in year_to_playoff_start.keys()],
+            choices=[_ for _ in year_to_reg_season_start.keys()],
         )
         return parser.parse_args()
 

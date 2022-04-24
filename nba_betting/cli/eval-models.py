@@ -1,6 +1,9 @@
 import argparse
+import os
+import sys
 
-from nba_betting.api.data import year_to_playoff_start
+sys.path.append(os.getcwd())  # sys path needed to import other classes
+from nba_betting.api.data import year_to_reg_season_start
 from nba_betting.model.training import fit_all
 
 
@@ -18,13 +21,13 @@ class ModelTrainer:
             "--train-year",
             required=True,
             type=int,
-            choices=[_ for _ in year_to_playoff_start.keys()],
+            choices=[_ for _ in year_to_reg_season_start.keys()],
         )
         parser.add_argument(
             "--test-year",
             required=True,
             type=int,
-            choices=[_ for _ in year_to_playoff_start.keys()],
+            choices=[_ for _ in year_to_reg_season_start.keys()],
         )
         parser.add_argument(
             "--no-store-cache",
