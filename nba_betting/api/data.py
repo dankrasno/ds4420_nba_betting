@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -94,7 +94,7 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame
         sub_df = games_dict[key]
         sub_dict = sub_df.to_dict("records")
         team_opp_dict = {}
-        col_names = None
+        col_names: List[str] = []
 
         for i, row in enumerate(sub_dict):
 
@@ -116,16 +116,20 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame
             # opp_cols = opponent_row
 
             # combine stats into 1 row
-            combined = pd.concat([row2, opponent_row], axis=1).loc[0]
+            combined = pd.concat([row2, opponent_row], axis=1).iloc[0]
             # add to new dict
             team_opp_dict[i] = combined.tolist()
 
             if i == 0:
-                col_names = row2.columns.append(opponent_row.columns)
+                col_names = list(row2.columns) + list(opponent_row.columns)
 
-        team_opp_df = pd.DataFrame.from_dict(team_opp_dict, orient="index")
-        team_opp_df.columns = col_names
-        with_opps[key] = team_opp_df
+        opp_df: pd.DataFrame = pd.DataFrame.from_dict(  # type: ignore[attr-defined]
+            team_opp_dict, orient="index"
+        )
+
+        assert len(col_names) > 0
+        opp_df.columns = col_names  # type: ignore[assignment]
+        with_opps[key] = opp_df
 
     return with_opps
 
@@ -134,7 +138,7 @@ def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
 
     # setup
     dates, matchup, team_name = df["GAME_DATE"], df["MATCHUP"], df["TEAM_ABBREVIATION"]
-    matchup = [m[-3:] for m in matchup]
+    opponent_abv = [str(m).strip()[-3:] for m in matchup]
     wl = df["WL"]
     df = df.drop(DESCRIPTIVE_COLS, axis=1)
     dictionary_data = {}
@@ -148,11 +152,13 @@ def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
         dictionary_data[i] = avg_til_now
 
     # create and fix up final df
-    df_final: pd.DataFrame = pd.DataFrame.from_dict(dictionary_data, orient="index")
+    df_final = pd.DataFrame.from_dict(  # type: ignore[attr-defined]
+        dictionary_data, orient="index"
+    )
     df_final.columns = df.columns
     df_final["GAMES_PLAYED"] = df["GAMES_PLAYED"]
     df_final["GAME_DATE"] = dates
-    df_final["OPPONENT"] = matchup
+    df_final["OPPONENT"] = opponent_abv
     df_final["TEAM_ABBREVIATION"] = team_name
     df_final["WL"] = wl
 
@@ -219,12 +225,13 @@ def get_games_by_team_szn(
 
         # remove playoff games
         if remove_playoff:
-            game_dates: pd.Series[Any] = sorted_szn_games["GAME_DATE"]
             sorted_szn_games = sorted_szn_games.loc[
-                game_dates < year_to_reg_season_end[year]  # type: ignore
+                sorted_szn_games["GAME_DATE"]
+                < year_to_reg_season_end[year]  # type: ignore[operator]
             ]
             sorted_szn_games = sorted_szn_games.loc[
-                sorted_szn_games["GAME_DATE"] >= year_to_reg_season_start[year]
+                sorted_szn_games["GAME_DATE"]
+                >= year_to_reg_season_start[year]  # type: ignore[operator]
             ]
 
         # add 'games played'

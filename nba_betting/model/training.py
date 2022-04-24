@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
 
-from nba_betting.api.data import DESCRIPTIVE_COLS, OVERLAP_COLS, get_games_by_year
+from nba_betting.api.data import OVERLAP_COLS, get_games_by_year
 from nba_betting.logging.tools import logger
 from nba_betting.model.classes import NBA_MODELS
 from nba_betting.model.classes.base import (
