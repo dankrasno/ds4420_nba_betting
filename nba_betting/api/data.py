@@ -19,7 +19,7 @@ year_to_playoff_start = {
     2018: "2019-04-09",
     # https://en.wikipedia.org/wiki/2019_NBA_playoffs
     # 2019: "2019-04-13",  # do not use
-    2019: "2018-04-14",  # TODO: @dankrasno needs to be adjusted
+    2019: "2020-04-14",  # TODO: @dankrasno needs to be adjusted
 }
 
 # descriptive_cols = [
@@ -30,7 +30,7 @@ year_to_playoff_start = {
 #     "WL",
 #     "MIN",
 # ]
-descriptive_cols = [
+DESCRIPTIVE_COLS = [
     "SEASON_ID",
     "TEAM_ID",
     "TEAM_ABBREVIATION",
@@ -66,7 +66,7 @@ def get_games_by_team_and_year(
     games = games.where((games.SEASON_ID.astype(int) % 10000) == year)
 
     if drop_extra:
-        games = games.drop(descriptive_cols, axis=1)
+        games = games.drop(DESCRIPTIVE_COLS, axis=1)
 
     return games
 
@@ -96,8 +96,9 @@ def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     """
     Drop columns we won't need
     """
-    X = df.drop(descriptive_cols, axis=1)
-    y = df["WL"]
+    reindexed_df = df.reset_index()
+    X = reindexed_df.drop(DESCRIPTIVE_COLS, axis=1)
+    y = reindexed_df["WL"]
     return X, y
 
 
