@@ -1,11 +1,11 @@
 import argparse
-import sys
 import os
+import sys
 
 sys.path.append(os.getcwd())  # sys path needed to import other classes
-
 from nba_betting.api.data import year_to_reg_season_start
 from nba_betting.model.training import fit_all
+
 
 class ModelTrainer:
     def __init__(self) -> None:
