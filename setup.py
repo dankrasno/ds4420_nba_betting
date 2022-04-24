@@ -18,6 +18,7 @@ setup(
     ],
     extras_require={
         "dev": [
+            "jupyter",
             "black",
             "isort",
             "mypy",
