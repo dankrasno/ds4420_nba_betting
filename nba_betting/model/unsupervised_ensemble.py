@@ -120,9 +120,21 @@ class UnsupervisedEnsemble:
         self._fit_weights(X, y)
 
     def predict(self, X: pd.DataFrame) -> Any:
+        proba = self.predict_proba(X)
+        return proba.W.apply(lambda p: "W" if p >= 0.5 else "L")
+
+    def predict_proba(self, X: pd.DataFrame) -> Any:
         # get corrected predictions for "W" snapped to the range [0, 1]
         corrected_proba = self._predict_corrected_proba(X)
         # get the weight predictions on each row of X
         weights = self._predict_weights(X)
         # multiply and return the rowsums
-        return (corrected_proba * weights).sum(axis=1)  # type: ignore [operator]
+        summed_proba = (corrected_proba * weights).sum(  # type: ignore [operator]
+            axis=1
+        )
+
+        proba = pd.DataFrame()
+        proba["W"] = summed_proba
+        proba["L"] = 1 - summed_proba
+
+        return proba
