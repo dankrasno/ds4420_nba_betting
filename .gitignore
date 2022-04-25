@@ -3,6 +3,8 @@
 **/data/model_cache/
 #   - ignore API data dumps
 **/data/raw/
+#  - ignore .vscode
+.vscode
 
 
 # Byte-compiled / optimized / DLL files
