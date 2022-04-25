@@ -15,6 +15,7 @@ setup(
         "numpy",
         "scikit-learn",
         "tabulate",
+        "matplotlib",
     ],
     extras_require={
         "dev": [
