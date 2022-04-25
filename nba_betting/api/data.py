@@ -1,8 +1,6 @@
 import logging
 import os
-from sys import prefix
 from typing import Dict, List, Tuple
-from xmlrpc.client import Boolean
 
 import numpy as np
 import pandas as pd
@@ -90,10 +88,10 @@ def get_games_by_year(year: int) -> pd.DataFrame:
         games_dict_no_opp[team_id] = g
 
     games_with_opponents = add_opponents(games_dict_no_opp, is_cumulative=False)
-    
+
     games_dict = {}
-    for g in games_with_opponents.keys():
-        team_name, cumulative_df = make_cumulative(games_with_opponents[g])
+    for game_with_opponents in games_with_opponents.values():
+        team_name, cumulative_df = make_cumulative(game_with_opponents)
         games_dict[team_name] = cumulative_df
     logger.debug("Done.")
 
@@ -114,12 +112,14 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     return full_year_df
 
 
-def add_opponents(games_dict: Dict[str, pd.DataFrame], is_cumulative: Boolean) -> Dict[str, pd.DataFrame]:
+def add_opponents(
+    games_dict: Dict[str, pd.DataFrame], is_cumulative: bool
+) -> Dict[str, pd.DataFrame]:
 
-    if is_cumulative: 
+    if is_cumulative:
         prefix = "OPP_"
         drop_cols = OVERLAP_COLS
-    else: 
+    else:
         prefix = "ALLOWED_"
         drop_cols = OVERLAP_COLS2
     with_opps: Dict[str, pd.DataFrame] = {}
@@ -147,10 +147,10 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame], is_cumulative: Boolean) -
                 opponent_df.loc[opponent_df["GAME_DATE"] == game_date]
                 .drop(drop_cols, axis=1)
                 .add_prefix(prefix)
-#                 opponent_df.loc[opponent_df["GAME_DATE"] == game_date][
-#                     TEAM_FEATURE_COLS
-#                 ]
-#                 .add_prefix("OPP_")
+                # opponent_df.loc[opponent_df["GAME_DATE"] == game_date][
+                #     TEAM_FEATURE_COLS
+                # ]
+                # .add_prefix("OPP_")
                 .set_index(pd.Index([0]))
             )
             # opp_cols = opponent_row

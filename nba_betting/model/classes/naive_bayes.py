@@ -1,4 +1,5 @@
 from typing import Any, Callable, Optional
+
 import pandas as pd
 from sklearn.naive_bayes import GaussianNB
 
@@ -8,14 +9,10 @@ class GaussianNBSub(GaussianNB):  # type: ignore[misc]
     def __init__(
         self,
         transform_X: Callable[[pd.DataFrame], pd.DataFrame],
-        priors: Any = None, 
+        priors: Any = None,
         var_smoothing: Any = 1e-9,
-
     ) -> None:
-        super(GaussianNBSub, self).__init__(
-            priors = priors,
-            var_smoothing = var_smoothing
-        )
+        super(GaussianNBSub, self).__init__(priors=priors, var_smoothing=var_smoothing)
 
         self.transform_X = transform_X
 
@@ -37,9 +34,7 @@ class GaussianNBSub(GaussianNB):  # type: ignore[misc]
     def score(
         self, X: pd.DataFrame, y: Any, sample_weight: Optional[Any] = None
     ) -> Any:
-        return super(GaussianNBSub, self).score(
-            self.transform_X(X), y, sample_weight
-        )
+        return super(GaussianNBSub, self).score(self.transform_X(X), y, sample_weight)
 
     def decision_function(self, X: pd.DataFrame) -> Any:
         return super(GaussianNBSub, self).decision_function(self.transform_X(X))
@@ -56,7 +51,7 @@ class DefenceGaussianNB(GaussianNBSub):
     # copy constructor to make sklearn happy
     def __init__(
         self,
-        priors: Any = None, 
+        priors: Any = None,
         var_smoothing: Any = 1e-9,
     ) -> None:
         super(DefenceGaussianNB, self).__init__(
@@ -77,7 +72,7 @@ class OffenceGaussianNB(GaussianNBSub):
     # copy constructor to make sklearn happy
     def __init__(
         self,
-        priors: Any = None, 
+        priors: Any = None,
         var_smoothing: Any = 1e-9,
     ) -> None:
         super(OffenceGaussianNB, self).__init__(
@@ -98,7 +93,7 @@ class EfficiencyGaussianNB(GaussianNBSub):
     # copy constructor to make sklearn happy
     def __init__(
         self,
-        priors: Any = None, 
+        priors: Any = None,
         var_smoothing: Any = 1e-9,
     ) -> None:
         super(EfficiencyGaussianNB, self).__init__(
@@ -110,7 +105,13 @@ class EfficiencyGaussianNB(GaussianNBSub):
 
 class GeneralGaussianNB(GaussianNBSub):
     model_name = "general_gaussian_naive_bayes"
-    model_colums = model_colums = ["PTS", "OPP_PTS", "PF", "PLUS_MINUS", "OPP_PLUS_MINUS"]
+    model_colums = model_colums = [
+        "PTS",
+        "OPP_PTS",
+        "PF",
+        "PLUS_MINUS",
+        "OPP_PLUS_MINUS",
+    ]
 
     @classmethod
     def transform_X(cls, X: pd.DataFrame) -> pd.DataFrame:
@@ -119,7 +120,7 @@ class GeneralGaussianNB(GaussianNBSub):
     # copy constructor to make sklearn happy
     def __init__(
         self,
-        priors: Any = None, 
+        priors: Any = None,
         var_smoothing: Any = 1e-9,
     ) -> None:
         super(GeneralGaussianNB, self).__init__(
