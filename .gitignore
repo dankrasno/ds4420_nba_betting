@@ -1,8 +1,8 @@
 # Project files
 #   - ignore model cache dumps
-data/model_cache/
+**/data/model_cache/
 #   - ignore API data dumps
-data/raw/
+**/data/raw/
 
 
 # Byte-compiled / optimized / DLL files
