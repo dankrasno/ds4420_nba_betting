@@ -47,7 +47,7 @@ NBA_MODELS: Dict[str, Type[NBAModel]] = {
     OffenceGaussianNB.model_name: OffenceGaussianNB,
     EfficiencyGaussianNB.model_name: EfficiencyGaussianNB,
     GeneralGaussianNB.model_name: GeneralGaussianNB,
-    # DefenceRandForest.model_name: DefenceRandForest,
-    # OffenceRandForest.model_name: OffenceRandForest,
-    # EfficiencyRandForest.model_name: EfficiencyRandForest,
+    DefenceRandForest.model_name: DefenceRandForest,
+    OffenceRandForest.model_name: OffenceRandForest,
+    EfficiencyRandForest.model_name: EfficiencyRandForest
 }
