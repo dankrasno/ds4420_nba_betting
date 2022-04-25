@@ -15,9 +15,11 @@ setup(
         "numpy",
         "scikit-learn",
         "tabulate",
+        "matplotlib",
     ],
     extras_require={
         "dev": [
+            "jupyter",
             "black",
             "isort",
             "mypy",

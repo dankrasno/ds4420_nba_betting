@@ -9,6 +9,8 @@ import pandas as pd
 from nba_api.stats.endpoints import leaguegamefinder
 from nba_api.stats.static import teams
 
+from nba_betting.logging.tools import logger
+
 year_to_reg_season_start = {
     2018: "2018-10-16",
     2019: "2019-10-22",
@@ -38,6 +40,31 @@ DESCRIPTIVE_COLS = [
 ]
 OVERLAP_COLS = ["GAME_DATE", "OPPONENT", "TEAM_ABBREVIATION", "WL"]
 OVERLAP_COLS2 = ["GAME_DATE", "TEAM_ABBREVIATION", "WL"]
+TEAM_FEATURE_COLS = [
+    "PTS",
+    "FGM",
+    "FGA",
+    "FG_PCT",
+    "FG3M",
+    "FG3A",
+    "FG3_PCT",
+    "FTM",
+    "FTA",
+    "FT_PCT",
+    "OREB",
+    "DREB",
+    "REB",
+    "AST",
+    "STL",
+    "BLK",
+    "TOV",
+    "PF",
+    "PLUS_MINUS",
+    "GAMES_PLAYED",
+]
+FEATURE_COLS = TEAM_FEATURE_COLS + [f"OPP_{col}" for col in TEAM_FEATURE_COLS]
+TEST_COL = "WL"
+
 
 def get_team_id_from_abbr(team_abbr: str) -> int:
 
@@ -45,26 +72,6 @@ def get_team_id_from_abbr(team_abbr: str) -> int:
     # Select the dictionary for the Celtics, which contains their team ID
     team = [team for team in nba_teams if team["abbreviation"] == team_abbr][0]
     return int(team["id"])
-
-
-def get_games_by_team_and_year(
-    team_id: int, year: int, drop_extra: bool = False
-) -> pd.DataFrame:
-    """
-    year: 2018 for the 2017-18 season
-    """
-
-    # Query for games where the Celtics were playing
-    gamefinder = leaguegamefinder.LeagueGameFinder(team_id_nullable=team_id)
-    # The first DataFrame of those returned is what we want.
-    games: pd.DataFrame = gamefinder.get_data_frames()[0]
-    # adjust for year
-    games = games.where((games.SEASON_ID.astype(int) % 10000) == year)
-
-    if drop_extra:
-        games = games.drop(DESCRIPTIVE_COLS, axis=1)
-
-    return games
 
 
 def get_games_by_year(year: int) -> pd.DataFrame:
@@ -88,15 +95,21 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     for g in games_with_opponents.keys():
         team_name, cumulative_df = make_cumulative(games_with_opponents[g])
         games_dict[team_name] = cumulative_df
-    logging.info("Done getting game data")
+    logger.debug("Done.")
 
     logging.info("Creating matchups...")
     games_with_ops = add_opponents(games_dict, is_cumulative=True)
     logging.info("Done creating matchups.")
 
     full_year_df = pd.concat([v for v in games_with_ops.values()])
-    full_year_df.dropna(inplace=True, subset=["WL"], how="all")
+    full_year_df.dropna(inplace=True, subset=[TEST_COL], how="all")
     full_year_df.reset_index(inplace=True)
+
+    logger.debug(
+        "Created data for %s:\n%r",
+        year,
+        full_year_df,
+    )
 
     return full_year_df
 
@@ -135,6 +148,10 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame], is_cumulative: Boolean) -
                 opponent_df.loc[opponent_df["GAME_DATE"] == game_date]
                 .drop(drop_cols, axis=1)
                 .add_prefix(prefix)
+#                 opponent_df.loc[opponent_df["GAME_DATE"] == game_date][
+#                     TEAM_FEATURE_COLS
+#                 ]
+#                 .add_prefix("OPP_")
                 .set_index(pd.Index([0]))
             )
             # opp_cols = opponent_row
@@ -163,8 +180,8 @@ def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
     # setup
     dates, matchup, team_name = df["GAME_DATE"], df["MATCHUP"], df["TEAM_ABBREVIATION"]
     opponent_abv = [str(m).strip()[-3:] for m in matchup]
-    wl = df["WL"]
-    df = df.drop(DESCRIPTIVE_COLS, axis=1)
+    wl = df[TEST_COL]
+    df = df[TEAM_FEATURE_COLS]
     dictionary_data = {}
 
     # get previous rows, get averages and append to dict
@@ -184,7 +201,7 @@ def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
     df_final["GAME_DATE"] = dates
     df_final["OPPONENT"] = opponent_abv
     df_final["TEAM_ABBREVIATION"] = team_name
-    df_final["WL"] = wl
+    df_final[TEST_COL] = wl
 
     return str(team_name.iloc[0]), df_final
 
@@ -194,8 +211,8 @@ def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     Drop columns we won't need
     """
 
-    y = df["WL"]
-    X = df.drop(OVERLAP_COLS, axis=1)
+    y = df[TEST_COL]
+    X = df[FEATURE_COLS]
     return X, y
 
 
@@ -224,17 +241,17 @@ def get_games_by_team_szn(
 
     # check cached
     if os.path.exists(filename):
-        logging.info(
+        logger.debug(
             "Getting cached data for \n\tTeam:{}, \n\tYear:{}".format(team_id, year)
         )
         sorted_szn_games = pd.read_csv(filename)
 
     # get the data if it doesn't already exist
     else:
-        logging.info(
+        logger.debug(
             "No cached data for \n\tTeam:{}, \n\tYear:{}".format(team_id, year)
         )
-        logging.info("Fetching data...")
+        logger.debug("Fetching data...")
 
         # get all games
         result = leaguegamefinder.LeagueGameFinder()
@@ -262,7 +279,7 @@ def get_games_by_team_szn(
         sorted_szn_games["GAMES_PLAYED"] = range(0, sorted_szn_games.shape[0])
 
         sorted_szn_games.to_csv(filename, index=False)
-        logging.info("Fetched and cached.\n")
+        logger.debug("Fetched and cached.\n")
 
     return sorted_szn_games
 
@@ -300,17 +317,16 @@ def get_points_by_quarter(team_id: int) -> None:
 
 
 def main() -> None:
-
     year = 2018
-    logging.info(f"Getting data for {year}")
+    logger.info(f"Getting data for {year}")
     g = get_games_by_year(year)
     X, y = make_xy(g)
 
-    logging.info(X)
-    logging.info("===========")
-    logging.info(y)
+    logger.info(X)
+    logger.info("===========")
+    logger.info(y)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     main()
