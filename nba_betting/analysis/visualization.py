@@ -1,14 +1,15 @@
-from typing import Any
+from typing import Any, List
 
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 
-def plot_conf_mat(y_true: Any, y_pred: Any) -> None:
+def plot_conf_mat(y_true: Any, y_pred: Any, labels: List[str] = ["L", "W"]) -> None:
     # Credit to https://medium.com/@dtuk81/confusion-matrix-visualization-fc31e3f30fea
     cf_matrix = confusion_matrix(y_true, y_pred)
-    categories = sorted(np.unique(y_true))
+    cf_matrix_df = pd.DataFrame(cf_matrix, labels=["L", "W"], labels=["L", "W"])
     group_names = ["True Neg", "False Pos", "False Neg", "True Pos"]
     group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
     group_percentages = [
@@ -20,4 +21,9 @@ def plot_conf_mat(y_true: Any, y_pred: Any) -> None:
             for name, count, pct in zip(group_names, group_counts, group_percentages)
         ]
     ).reshape(2, 2)
-    sns.heatmap(cf_matrix, annot=labels, fmt="", categories=categories, cmap="Blues")
+    sns.heatmap(
+        cf_matrix_df,
+        annot=labels,
+        fmt="",
+        cmap="Blues",
+    )
