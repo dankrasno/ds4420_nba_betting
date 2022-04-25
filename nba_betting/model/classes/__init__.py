@@ -3,23 +3,20 @@ from typing import Dict, Type, Union
 from nba_betting.model.classes.linear import (
     DefenceLogReg,
     EfficiencyLogReg,
-    OffenceLogReg,
     GeneralLogReg,
-    ShootingLogReg
+    OffenceLogReg,
+    ShootingLogReg,
 )
-
 from nba_betting.model.classes.naive_bayes import (
     DefenceGaussianNB,
-    OffenceGaussianNB,
     EfficiencyGaussianNB,
     GeneralGaussianNB,
+    OffenceGaussianNB,
 )
-
 from nba_betting.model.classes.random_forest import (
     DefenceRandForest,
-    OffenceRandForest,
     EfficiencyRandForest,
-
+    OffenceRandForest,
 )
 
 NBAModel = Union[
@@ -49,5 +46,5 @@ NBA_MODELS: Dict[str, Type[NBAModel]] = {
     GeneralGaussianNB.model_name: GeneralGaussianNB,
     DefenceRandForest.model_name: DefenceRandForest,
     OffenceRandForest.model_name: OffenceRandForest,
-    EfficiencyRandForest.model_name: EfficiencyRandForest
+    EfficiencyRandForest.model_name: EfficiencyRandForest,
 }

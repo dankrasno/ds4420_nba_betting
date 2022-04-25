@@ -1,7 +1,7 @@
-# from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement
 from typing import Any, Dict, List, Tuple
 
-# import numpy as np
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
@@ -12,11 +12,6 @@ from nba_betting.model.classes import NBA_MODELS
 from nba_betting.model.classes.base import (
     load_estimator_cache,
     store_estimator_cache,
-)
-from nba_betting.model.classes.linear import (
-    DefenceLogReg,
-    EfficiencyLogReg,
-    OffenceLogReg,
 )
 
 
@@ -107,12 +102,11 @@ def fit_ensemble(
             set(
                 tuple(np.divide(weight_combination, sum(weight_combination)))
                 for weight_combination in combinations_with_replacement(
-                    [i for i in range(1,4)], len(models)
+                    [i for i in range(2)], len(models)
                 )
                 if sum(weight_combination) != 0
             )
         )
-        # "lr__C": [1.0, 100.0], "rf__n_estimators": [20, 200]
     }
     logger.info("Using grid search wih params: %r", param_grid)
     grid_search: GridSearchCV = GridSearchCV(
