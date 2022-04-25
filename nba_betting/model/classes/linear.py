@@ -167,7 +167,7 @@ class OffenceLogReg(LogisticRegressionSub):
 
 class EfficiencyLogReg(LogisticRegressionSub):
     model_name = "efficiency_logistic_regression"
-    model_colums = ["FG_PCT", "FG3_PCT", "FT_PCT"]
+    model_colums = ["FG_PCT", "FGA", "FG3_PCT", "FG3A", "FT_PCT", "FTA"]
 
     @classmethod
     def transform_X(cls, X: pd.DataFrame) -> pd.DataFrame:
