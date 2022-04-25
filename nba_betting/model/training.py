@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
 
 from nba_betting.api.data import get_games_by_year, make_xy
 from nba_betting.logging.tools import logger
@@ -73,6 +74,8 @@ def fit_all(
         logger.info("Training %s complete", model.model_name)
         logger.info("Training set score: %s", model.score(X, y))
         logger.info("Testing set score: %s", model.score(X_test, y_test))
+        y_true, y_pred = y_test, model.predict(X_test)
+        logger.info(classification_report(y_true, y_pred))
 
         if store_cache:
             logger.info("Saving trained model %s to cache", model.model_name)
@@ -120,3 +123,5 @@ def fit_ensemble(
 
     logger.info("Training set score: %s", grid_search.score(X, y))
     logger.info("Testing set score: %s", grid_search.score(X_test, y_test))
+    y_true, y_pred = y_test, grid_search.predict(X_test)
+    logger.info(classification_report(y_true, y_pred))
