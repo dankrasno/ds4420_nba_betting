@@ -130,7 +130,6 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame], is_cumulative: Boolean) -
         col_names: List[str] = []
 
         for i, row in enumerate(sub_dict):
-            # print(row)
 
             # find opponent (abbreviation), find game date
             if is_cumulative:
@@ -181,7 +180,7 @@ def make_cumulative(df: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
     dates, matchup, team_name = df["GAME_DATE"], df["MATCHUP"], df["TEAM_ABBREVIATION"]
     opponent_abv = [str(m).strip()[-3:] for m in matchup]
     wl = df[TEST_COL]
-    df = df[TEAM_FEATURE_COLS]
+    df = df.drop(DESCRIPTIVE_COLS, axis=1)
     dictionary_data = {}
 
     # get previous rows, get averages and append to dict
@@ -212,7 +211,7 @@ def make_xy(df: pd.DataFrame) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     """
 
     y = df[TEST_COL]
-    X = df[FEATURE_COLS]
+    X = df.drop(OVERLAP_COLS, axis=1)
     return X, y
 
 
