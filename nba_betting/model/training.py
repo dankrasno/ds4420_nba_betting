@@ -6,6 +6,8 @@ import pandas as pd
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
+from sklearn import metrics
+import matplotlib.pyplot as plt
 
 from nba_betting.api.data import get_games_by_year, make_xy
 from nba_betting.logging.tools import logger
@@ -74,8 +76,19 @@ def fit_all(
         logger.info("Training %s complete", model.model_name)
         logger.info("Training set score: %s", model.score(X, y))
         logger.info("Testing set score: %s", model.score(X_test, y_test))
+
+        # classification matrix
         y_true, y_pred = y_test, model.predict(X_test)
         logger.info(classification_report(y_true, y_pred))
+
+        # roc curve
+        y_pred_proba = model.predict_proba(X_test)[::,1]
+        fpr, tpr, _ = metrics.roc_curve(y_test,  y_pred_proba, pos_label="W")
+        auc = metrics.roc_auc_score(y_test, y_pred_proba)
+        plt.plot(fpr,tpr,label="data 1, auc="+str(auc))
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.savefig("{}_roc_curve.png".format(model.model_name))
 
         if store_cache:
             logger.info("Saving trained model %s to cache", model.model_name)
