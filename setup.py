@@ -16,11 +16,12 @@ setup(
         "scikit-learn",
         "tabulate",
         "matplotlib",
+        "jupyter",
+        "seaborn",
     ],
     extras_require={
         "dev": [
-            "jupyter",
-            "black",
+            "black[jupyter]",
             "isort",
             "mypy",
             "mypy-extensions",
