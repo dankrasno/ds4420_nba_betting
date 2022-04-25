@@ -106,3 +106,24 @@ class EfficiencyGaussianNB(GaussianNBSub):
             priors=priors,
             var_smoothing=var_smoothing,
         )
+
+
+class GeneralGaussianNB(GaussianNBSub):
+    model_name = "general_gaussian_naive_bayes"
+    model_colums = model_colums = ["PTS", "OPP_PTS", "PF", "PLUS_MINUS", "OPP_PLUS_MINUS"]
+
+    @classmethod
+    def transform_X(cls, X: pd.DataFrame) -> pd.DataFrame:
+        return X[cls.model_colums]
+
+    # copy constructor to make sklearn happy
+    def __init__(
+        self,
+        priors: Any = None, 
+        var_smoothing: Any = 1e-9,
+    ) -> None:
+        super(GeneralGaussianNB, self).__init__(
+            transform_X=GeneralGaussianNB.transform_X,
+            priors=priors,
+            var_smoothing=var_smoothing,
+        )

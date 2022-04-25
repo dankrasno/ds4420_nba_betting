@@ -79,6 +79,7 @@ def fit_all(
         if store_cache:
             logger.info("Saving trained model %s to cache", model.model_name)
             store_estimator_cache(model, training_set_id)
+        logger.info("")
 
 
 def fit_ensemble(
@@ -103,7 +104,7 @@ def fit_ensemble(
             set(
                 tuple(np.divide(weight_combination, sum(weight_combination)))
                 for weight_combination in combinations_with_replacement(
-                    [i for i in range(1,2)], len(models)
+                    [i for i in range(1,4)], len(models)
                 )
                 if sum(weight_combination) != 0
             )
