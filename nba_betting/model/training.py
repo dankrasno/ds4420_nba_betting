@@ -82,6 +82,7 @@ def fit_all(
         if store_cache:
             logger.info("Saving trained model %s to cache", model.model_name)
             store_estimator_cache(model, training_set_id)
+        logger.info("")
 
 
 def fit_ensemble(
@@ -102,18 +103,16 @@ def fit_ensemble(
     )
 
     param_grid: Dict[str, List[Any]] = {
-        # "weights": list(
-        #     set(
-        #         tuple(np.divide(weight_combination, sum(weight_combination)))
-        #         for weight_combination in combinations_with_replacement(
-        #             [i for i in range(4)], len(models)
-        #         )
-        #         if sum(weight_combination) != 0
-        #     )
-        # )
-        f"{DefenceLogReg.model_name}__C": [0.001, 0.1, 1.0, 100.0],
-        f"{OffenceLogReg.model_name}__C": [0.001, 0.1, 1.0, 100.0],
-        f"{EfficiencyLogReg.model_name}__C": [0.001, 0.1, 1.0, 100.0],
+        "weights": list(
+            set(
+                tuple(np.divide(weight_combination, sum(weight_combination)))
+                for weight_combination in combinations_with_replacement(
+                    [i for i in range(1,4)], len(models)
+                )
+                if sum(weight_combination) != 0
+            )
+        )
+        # "lr__C": [1.0, 100.0], "rf__n_estimators": [20, 200]
     }
     logger.info("Using grid search wih params: %r", param_grid)
     grid_search: GridSearchCV = GridSearchCV(

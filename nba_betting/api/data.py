@@ -1,6 +1,8 @@
 import logging
 import os
+from sys import prefix
 from typing import Dict, List, Tuple
+from xmlrpc.client import Boolean
 
 import numpy as np
 import pandas as pd
@@ -29,8 +31,15 @@ DESCRIPTIVE_COLS = [
     "MATCHUP",
     "WL",
     "MIN",
+    "ALLOWED_SEASON_ID",
+    "ALLOWED_TEAM_ID",
+    "ALLOWED_TEAM_NAME",
+    "ALLOWED_GAME_ID",
+    "ALLOWED_MATCHUP",
+    "ALLOWED_MIN",
 ]
 OVERLAP_COLS = ["GAME_DATE", "OPPONENT", "TEAM_ABBREVIATION", "WL"]
+OVERLAP_COLS2 = ["GAME_DATE", "TEAM_ABBREVIATION", "WL"]
 TEAM_FEATURE_COLS = [
     "PTS",
     "FGM",
@@ -71,20 +80,26 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     """
 
     nba_teams = [t["id"] for t in teams.get_teams()]
+    team_abbr = [t["abbreviation"] for t in teams.get_teams()]
 
+    logging.info("Getting game data...")
     # games by team
-    games_dict = {}
+    games_dict_no_opp = {}
     games = [get_games_by_team_szn(year, team_id) for team_id in nba_teams]
+    for team_id, g in zip(team_abbr, games):
+        games_dict_no_opp[team_id] = g
 
-    logger.debug("Fetching game data for all teams...")
-    for g in games:
-        team_name, cumulative_df = make_cumulative(g)
+    games_with_opponents = add_opponents(games_dict_no_opp, is_cumulative=False)
+    
+    games_dict = {}
+    for g in games_with_opponents.keys():
+        team_name, cumulative_df = make_cumulative(games_with_opponents[g])
         games_dict[team_name] = cumulative_df
     logger.debug("Done.")
 
-    logger.debug("Creating matchups...")
-    games_with_ops = add_opponents(games_dict)
-    logger.debug("Done.")
+    logging.info("Creating matchups...")
+    games_with_ops = add_opponents(games_dict, is_cumulative=True)
+    logging.info("Done creating matchups.")
 
     full_year_df = pd.concat([v for v in games_with_ops.values()])
     full_year_df.dropna(inplace=True, subset=[TEST_COL], how="all")
@@ -99,8 +114,14 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     return full_year_df
 
 
-def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+def add_opponents(games_dict: Dict[str, pd.DataFrame], is_cumulative: Boolean) -> Dict[str, pd.DataFrame]:
 
+    if is_cumulative: 
+        prefix = "OPP_"
+        drop_cols = OVERLAP_COLS
+    else: 
+        prefix = "ALLOWED_"
+        drop_cols = OVERLAP_COLS2
     with_opps: Dict[str, pd.DataFrame] = {}
     for key in games_dict:
         sub_df = games_dict[key]
@@ -109,9 +130,13 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame
         col_names: List[str] = []
 
         for i, row in enumerate(sub_dict):
+            # print(row)
 
             # find opponent (abbreviation), find game date
-            opponent = row["OPPONENT"]
+            if is_cumulative:
+                opponent = row["OPPONENT"]
+            else:
+                opponent = row["MATCHUP"][-3:]
             game_date = row["GAME_DATE"]
 
             row2 = pd.DataFrame(row, index=[0])
@@ -120,10 +145,13 @@ def add_opponents(games_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame
             # get opponent cumulative stats
             # using game date, validate current team abbreviation
             opponent_row = (
-                opponent_df.loc[opponent_df["GAME_DATE"] == game_date][
-                    TEAM_FEATURE_COLS
-                ]
-                .add_prefix("OPP_")
+                opponent_df.loc[opponent_df["GAME_DATE"] == game_date]
+                .drop(drop_cols, axis=1)
+                .add_prefix(prefix)
+#                 opponent_df.loc[opponent_df["GAME_DATE"] == game_date][
+#                     TEAM_FEATURE_COLS
+#                 ]
+#                 .add_prefix("OPP_")
                 .set_index(pd.Index([0]))
             )
             # opp_cols = opponent_row
