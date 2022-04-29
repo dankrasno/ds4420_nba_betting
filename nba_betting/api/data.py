@@ -10,11 +10,13 @@ from nba_api.stats.static import teams
 from nba_betting.logging.tools import logger
 
 year_to_reg_season_start = {
+    2017: "2017-10-17",
     2018: "2018-10-16",
     2019: "2019-10-22",
 }
 
 year_to_reg_season_end = {
+    2017: "2018-04-11",
     2018: "2019-04-10",
     2019: "2020-04-14",
 }
@@ -78,14 +80,20 @@ def get_games_by_year(year: int) -> pd.DataFrame:
     """
 
     nba_teams = [t["id"] for t in teams.get_teams()]
+    logger.debug("nba_teams: %r", nba_teams)
     team_abbr = [t["abbreviation"] for t in teams.get_teams()]
+    logger.debug("team_abbr: %r", team_abbr)
 
     logging.info("Getting game data...")
     # games by team
     games_dict_no_opp = {}
     games = [get_games_by_team_szn(year, team_id) for team_id in nba_teams]
+    logger.debug("got games: %r", games)
     for team_id, g in zip(team_abbr, games):
+        logger.debug("team_id, g: %r, %r", team_id, g.shape)
         games_dict_no_opp[team_id] = g
+
+    logger.debug("games_dict_no_opp.keys(): %r", list(games_dict_no_opp.keys()))
 
     games_with_opponents = add_opponents(games_dict_no_opp, is_cumulative=False)
 
@@ -115,6 +123,8 @@ def get_games_by_year(year: int) -> pd.DataFrame:
 def add_opponents(
     games_dict: Dict[str, pd.DataFrame], is_cumulative: bool
 ) -> Dict[str, pd.DataFrame]:
+
+    logger.debug(games_dict)
 
     if is_cumulative:
         prefix = "OPP_"
@@ -239,11 +249,13 @@ def get_games_by_team_szn(
     filename = os.path.join("data/raw", filename)
 
     # check cached
+    logger.debug("filename: %r", filename)
     if os.path.exists(filename):
-        logger.debug(
-            "Getting cached data for \n\tTeam:{}, \n\tYear:{}".format(team_id, year)
-        )
+        # logger.debug(
+        #     "Getting cached data for \n\tTeam:{}, \n\tYear:{}".format(team_id, year)
+        # )
         sorted_szn_games = pd.read_csv(filename)
+        logger.debug(sorted_szn_games)
 
     # get the data if it doesn't already exist
     else:
