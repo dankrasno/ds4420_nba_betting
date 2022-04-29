@@ -22,9 +22,9 @@ def preprocess_games(
     logger.info("Processing data for year %s", year)
 
     logger.info("Ignoring rows with under %s games played.", min_games_played)
+    games_df = get_games_by_year(year)
     games_df = (
-        get_games_by_year(year)
-        .where(games_df["GAMES_PLAYED"] >= min_games_played)
+        games_df.where(games_df["GAMES_PLAYED"] >= min_games_played)
         .dropna()
         .reset_index()
     )
@@ -38,6 +38,51 @@ def preprocess_games(
     )
 
     return X, y
+
+
+def split_X_y(
+    X: pd.DataFrame,
+    y: "pd.Series[str]",
+    games_played_interval: int = 10,
+) -> "Dict[Tuple[int, int], Tuple[pd.DataFrame, pd.Series[str]]]":
+    """Stratify X and y using the GAMES_PLAYED column
+
+    Args:
+        games_played_interval (int, optional): the window interval for games played. Defaults to 10.
+
+    Returns:
+        Dict[Tuple[int, int], Tuple[pd.DataFrame, pd.Series[str]]]: a dict
+        with the keys representing the min and max games played in the window, and
+        the values being the X and y for that window
+    """
+    min_games_played = int(np.min(X["GAMES_PLAYED"]))
+    max_games_played = int(np.min(X["GAMES_PLAYED"]))
+    split_X_y_dfs = {(min_games_played, max_games_played): (X, y)}
+
+    for i, row in X.iterrows():
+        assert isinstance(i, int)
+        games_played = int(row["GAMES_PLAYED"])
+        row_games_played_interval = (
+            games_played_interval * int(games_played / games_played_interval),
+            (
+                (
+                    games_played_interval
+                    * (1 + int(games_played / games_played_interval))
+                )
+                - 1
+            ),
+        )
+
+        if row_games_played_interval not in split_X_y_dfs:
+            split_X_y_dfs[row_games_played_interval] = (
+                pd.DataFrame(columns=X.columns),
+                pd.Series(dtype=str),
+            )
+
+        split_X_y_dfs[row_games_played_interval][0][i] = row
+        split_X_y_dfs[row_games_played_interval][1][i] = y.iloc[0]
+
+    return split_X_y_dfs
 
 
 def get_training_set_id(year: int) -> str:
