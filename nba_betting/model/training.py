@@ -15,10 +15,19 @@ from nba_betting.model.classes.base import (
 )
 
 
-def preprocess_games(year: int) -> "Tuple[pd.DataFrame, pd.Series[str]]":
+def preprocess_games(
+    year: int,
+    min_games_played: int = 0,
+) -> "Tuple[pd.DataFrame, pd.Series[str]]":
     logger.info("Processing data for year %s", year)
 
-    games_df = get_games_by_year(year).reset_index()
+    logger.info("Ignoring rows with under %s games played.", min_games_played)
+    games_df = (
+        get_games_by_year(year)
+        .where(games_df["GAMES_PLAYED"] >= min_games_played)
+        .dropna()
+        .reset_index()
+    )
     X, y = make_xy(games_df)
 
     logger.info(
